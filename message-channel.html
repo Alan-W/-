@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Message Channel</title>
+</head>
+<body>
+  <div id="test">test dom</div>
+  <script>
+    const channel = new MessageChannel()
+    new Promise((resolve, reject) => {
+      console.log('promise 1')
+      setTimeout(() => {
+        debugger
+        console.log('settimeout 1')
+        channel.port1.postMessage('the message is: -- 3')
+        resolve(true)
+      });
+    }).then(_ => {
+      console.log('then 1')
+    })
+    setTimeout(_ => {
+      console.log('settimeout 2')
+    })
+    channel.port1.postMessage('the message is: -- 1')
+    document.getElementById('test').onclick = function() {
+      channel.port1.postMessage('the message is: -- ', channel.port2)
+    }
+    channel.port2.onmessage = function(params) {
+      console.log('onmessage params is: -- ', params.data)
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    #log {
+      height: 300px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <p>
+    演示使用 <a href="https://developer.mozilla.org/en-US/docs/Web/API/Background_Tasks_API">
+    协作调度幕后任务 </a> 使用 <code>requestIdleCallback()</code>
+    方法。
+  </p>
+  <div class="container">
+    <div class="label">解码量子丝极谱发射中...</div>
+    <progress id="progress" value="0"></progress>
+    <button class="button" id="startButton">
+      开始
+    </button>
+    <div class="label counter">
+      任务 <span id="currentTaskNumber">0</span> / <span id="totalTaskCount">0</span>
+    </div>
+  </div>
+  <div class="logBox">
+    <div class="logHeader">
+      记录
+    </div>
+    <div id="log">
+    </div>
+  </div>
+  <script>
+    const taskList = []
+    let totalTaskCount = 0
+    let currentTaskNumber = 0
+    let taskHandle = null // 当前处理的任务
+    const totalTaskCountElem = document.getElementById('totalTaskCount')
+    const currentTaskNumberElem = document.getElementById('currentTaskNumber')
+    const progressBarElem = document.getElementById('progress')
+    const startButtonElem = document.getElementById('startButton')
+    const logElem = document.getElementById('log')
+    let logFragment = null
+    let statusRefreshScheduled = false
+    // requestIdleCallback 旨在每一帧有空闲时间时执行一些不仅要的任务，这些任务可能会在每一帧执行，也可能不会，主要看
+    // 浏览器是否有空闲时间
+    function enqueueTask(taskHandler, taskData) {
+      taskList.push({
+        handle: taskHandler,
+        data: taskData
+      })
+      totalTaskCount++
+      if(!taskHandle) {
+        taskHandle = requestIdleCallback(runTaskQueue, { timeout: 1000 })
+      }
+      scheduleStatusRefresh()
+    }
+
+    // 调度任务队列
+    function runTaskQueue(deadline) {
+      // 在每一帧有剩余空闲时间或者超过规定时间，且任务队列不为空的情况下调度任务
+      while((deadline.timeRemaining() > 0 || deadline.didTimeout) && taskList.length) {
+        console.log('deadline.timeRemaining()', deadline.timeRemaining())
+        const task = taskList.shift()
+        currentTaskNumber++
+        task.handle(task.data)
+        scheduleStatusRefresh()
+      }
+      // 没有空闲时间重新调度任务
+      if(taskList.length) {
+        taskHandle = requestIdleCallback(runTaskQueue, { timeout: 1000 })
+      } else {
+        taskHandle = null
+      }
+    }
+
+    // 利用requestAnimationFrame 在下次重绘前更新页面DOM
+    function scheduleStatusRefresh() {
+      if(!statusRefreshScheduled) {
+        requestAnimationFrame(updateDisplay)
+        statusRefreshScheduled = true
+      }
+    }
+
+    function updateDisplay() {
+      let scrolledToEnd = logElem.scrollHeight - logElem.clientHeight <= logElem.scrollTop + 1
+      if(totalTaskCount) {
+        if(progressBarElem.max != totalTaskCount) {
+          totalTaskCountElem.textContent = totalTaskCount
+          progressBarElem.max = totalTaskCount
+        }
+        if(progressBarElem.value != currentTaskNumber) {
+          currentTaskNumberElem.textContent = currentTaskNumber
+          progressBarElem.value = currentTaskNumber
+        }
+      }
+      if(logFragment) {
+        logElem.appendChild(logFragment)
+        logFragment = null
+      }
+      if(scrolledToEnd) {
+        logElem.scrollTop = logElem.scrollHeight - logElem.clientHeight
+      }
+
+      statusRefreshScheduled = false
+    }
+    function log(text) {
+      if (!logFragment) {
+          logFragment = document.createDocumentFragment();
+      }
+
+      let el = document.createElement("div");
+      el.innerHTML = text;
+      logFragment.appendChild(el);
+    }
+
+    function logTaskHandler(data) {
+      log("<strong>Running task #" + currentTaskNumber + "</strong>");
+
+      for (i=0; i<data.count; i+=1) {
+        log((i+1).toString() + ". " + data.text);
+      }
+    }
+
+    function decodeTechnoStuff() {
+      totalTaskCount = 0;
+      currentTaskNumber = 0;
+      updateDisplay();
+      let n = getRandomIntInclusive(100, 200);
+
+      for (i=0; i<n; i++) {
+        let taskData = {
+          count: getRandomIntInclusive(75, 150),
+          text: "This text is from task number " + (i+1).toString() + " of " + n
+        };
+
+        enqueueTask(logTaskHandler, taskData);
+      }
+    }
+
+    function getRandomIntInclusive(min, max) {
+      min = Math.ceil(min);
+      max = Math.floor(max);
+      return Math.floor(Math.random() * (max - min + 1)) + min; //含最大值，含最小值 
+    }
+
+    document.getElementById("startButton").addEventListener("click", decodeTechnoStuff, false);
+  </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    #parent {
+      background-color: #ff0;
+      width: 200px;
+      height: 200px;
+    }
+    #child {
+      background-color: #f0f;
+      width: 100px;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div id="parent">
+    我师父级
+    <div id="child">我是子集</div>
+  </div>
+  <script>
+    document.getElementById('child').addEventListener('click', event => {
+      alert(event.target.innerHTML + '子集绑定的')
+    })
+    document.getElementById('parent').addEventListener('click', event => {
+      alert(event.target.innerHTML + '父级委托的')
+    }, true)
+    
+  </script>
+</body>
+</html>
